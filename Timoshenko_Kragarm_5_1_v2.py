@@ -238,7 +238,7 @@ if choice_load == 'n':
     if choice_save == 'y':
         filename = input("Wie soll das State_Dict heißen?")
         torch.save(net.state_dict(),'C:\\Users\\Administrator\\Desktop\\Uni\\Master\\Masterarbeit\\Timoshenko_Kragarm_5.1_v2\\saved_data\\'+filename)
-##
+## Plots für Kapitel 5.1
 x = np.linspace(0, Lb, 1000)
 
 
