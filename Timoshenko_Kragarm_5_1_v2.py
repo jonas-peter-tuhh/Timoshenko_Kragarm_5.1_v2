@@ -87,7 +87,7 @@ for i in range(LFS):
     # ODE als Loss-Funktion, Streckenlast
     Ln[i] = 0#float(input('Länge Einspannung bis Anfang der ' + str(i + 1) + '. Streckenlast [m]: '))
     Lq[i] = Lb#float(input('Länge der ' + str(i + 1) + '. Streckenlast [m]: '))
-    s[i] = "(5/Lb)**5 * x"#input(str(i + 1) + '. Streckenlast eingeben: ')
+    s[i] = "1/(1/210 * Lb**5 + 1/200 * Lb**3) * x"#input(str(i + 1) + '. Streckenlast eingeben: ')
 
 
 def h(x, j):
@@ -153,7 +153,7 @@ if train:
     #x_anal = torch.linspace(0, Lb, 1000)
     f_anal=(-1/120  *(pt_x*5/Lb)**5 + 1/6 * 12.5 * (pt_x*5/Lb)**3 - 41.67/2 * (pt_x*5/Lb)**2)/EI + (1/6 * (pt_x*5/Lb)**3 - 12.5*(pt_x*5/Lb))/(K*A*G)
 ##
-iterations = 1000000
+iterations = 3000
 for epoch in range(iterations):
     if not train: break
     optimizer.zero_grad()  # to make the gradients zero
@@ -301,7 +301,7 @@ plt.grid()
 
 gamma_anal = (((5/Lb)**5 * 0.5 * x**2 - Q0[-1])/(K*A*G))
 gamma_net = v_out_x-phi_out
-gamma_err = np.linalg.norm((gamma_net-gamma_anal), 2)/np.linalg.norm((gamma_anal, 2)[-1])
+gamma_err = np.linalg.norm((gamma_net-gamma_anal), 2)/np.linalg.norm(gamma_anal, 2)
 print('\u03B3 5.1 =',gamma_err)
 
 plt.show()
@@ -369,7 +369,7 @@ plt.grid()
 
 gamma_anal = (((5/Lb)**5 * 0.5 * x**2 - Q0[-1])/(K*A*G))
 gamma_net = gamma_out
-gamma_err = np.linalg.norm((gamma_net-gamma_anal), 2)/np.linalg.norm((gamma_anal, 2)[-1])
+gamma_err = np.linalg.norm((gamma_net-gamma_anal), 2)/np.linalg.norm(gamma_anal, 2)
 print('\u03B3 5.2 =',gamma_err)
 
 plt.show()
