@@ -270,9 +270,7 @@ plt.subplot(2, 2, 1)
 plt.title('$v_{ges}$ Auslenkung')
 plt.xlabel('')
 plt.ylabel('[cm]')
-#v = v
 plt.plot(x, v_out)
-#plt.plot(x, (-1/24 *x**4-np.sin(x)+(Q0[-1]-1)/6 *x**3 - M0[-1]/2 * x**2 +x)/EI - (0.5*x**2 - np.sin(x) - (Q0[-1]-1)*x)/(K*A*G))
 plt.plot(x, (-1/120 *(5/Lb)**5  *(5*x/Lb)**5 + 1/6 * 12.5 * (5*x/Lb)**3 - 41.67/2 * (5*x/Lb)**2)/EI + (1/6 * (5*x/Lb)**3 - 12.5*(5*x/Lb))/(K*A*G))
 plt.grid()
 
@@ -280,9 +278,7 @@ plt.subplot(2, 2, 3)
 plt.title('$\phi$ Neigung')
 plt.xlabel('')
 plt.ylabel('$10^{-2}$')
-#phi = v' - gamma
 plt.plot(x, (phi_out))
-#plt.plot(x, (-1/6 *x**3-np.cos(x)+(Q0[-1]-1)/2 * x**2 - M0[-1]*x+1)/EI)
 plt.plot(x, (-1/24 *(5/Lb)**5 *x**4 + 0.5 * Q0[-1] * x**2 - M0[-1] * x)/EI)
 plt.grid()
 
@@ -290,9 +286,7 @@ plt.subplot(2, 2, 4)
 plt.title('$\kappa$ Krümmung')
 plt.xlabel('Meter')
 plt.ylabel('$(10^{-4})$[1/cm]')
-#kappa = v'' - gamma'
 plt.plot(x, (phi_out_x))
-#plt.plot(x, (-0.5*x**2+np.sin(x)+(Q0[-1]-1)*x-M0[-1])/EI)
 plt.plot(x, ( - 1/6 *(5/Lb)**5* x**3 + Q0[-1]*x - M0[-1])/EI)
 plt.grid()
 
@@ -303,25 +297,12 @@ plt.ylabel('$(10^{-2})$')
 #gamma = gamma
 plt.plot(x, (v_out_x-phi_out))
 plt.plot(x, (((5/Lb)**5 * 0.5 * x**2 - Q0[-1])/(K*A*G)))
-#plt.plot(x, (x-np.cos(x)-(Q0[-1]-1))/(K*A*G))
 plt.grid()
 
 gamma_anal = (((5/Lb)**5 * 0.5 * x**2 - Q0[-1])/(K*A*G))
 gamma_net = v_out_x-phi_out
 gamma_err = np.linalg.norm((gamma_net-gamma_anal), 2)/np.linalg.norm((gamma_anal, 2)[-1])
 print('\u03B3 5.1 =',gamma_err)
-
-
-#plt.subplot(3, 2, 4)
-#plt.title('q(x) Test')
-#plt.xlabel('')
-#plt.ylabel('$kN$')
-#plt.plot(x, (-w_xxx))
-#plt.plot(x, x)
-#plt.plot(x, 1+np.sin(x))
-#plt.grid()
-
-
 
 plt.show()
 
@@ -382,7 +363,6 @@ plt.subplot(2, 2, 2)
 plt.title('Schubwinkel $\gamma$')
 plt.xlabel('')
 plt.ylabel('$(10^{-2})$')
-#gamma = gamma
 plt.plot(x, (gamma_out))
 plt.plot(x, (((5/Lb)**5 * 0.5 * x**2 - Q0[-1])/(K*A*G)))
 plt.grid()
