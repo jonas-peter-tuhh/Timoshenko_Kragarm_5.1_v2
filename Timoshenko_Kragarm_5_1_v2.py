@@ -79,6 +79,7 @@ K = 5 / 6  # float(input(' Schubkoeffizient '))
 Ln = np.zeros(LFS)
 Lq = np.zeros(LFS)
 s = [None] * LFS
+normfactor = 10/(Lb**3/(K*A*G)+(11*Lb**5)/(120*EI))
 
 #Der Scheduler sorgt dafür, dass die Learning Rate auf einem Plateau mit dem factor multipliziert wird
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=200, verbose=True, factor=0.75)
@@ -87,7 +88,7 @@ for i in range(LFS):
     # ODE als Loss-Funktion, Streckenlast
     Ln[i] = 0#float(input('Länge Einspannung bis Anfang der ' + str(i + 1) + '. Streckenlast [m]: '))
     Lq[i] = Lb#float(input('Länge der ' + str(i + 1) + '. Streckenlast [m]: '))
-    s[i] = "1/(1/210 * Lb**5 + 1/200 * Lb**3) * x"#input(str(i + 1) + '. Streckenlast eingeben: ')
+    s[i] = str(normfactor)+"*x"#input(str(i + 1) + '. Streckenlast eingeben: ')
 
 
 def h(x, j):
@@ -97,10 +98,10 @@ def h(x, j):
 #Netzwerk System 1
 def f(x, net):
     net_out = net(x)
-    phi = net_out[0::3]*(Lb/5)**5
+    phi = net_out[0::3]
     phi_x = torch.autograd.grad(phi, x, create_graph=True, retain_graph=True, grad_outputs=torch.ones_like(phi))[0]
     phi_xx = torch.autograd.grad(phi_x, x, create_graph=True, retain_graph=True, grad_outputs=torch.ones_like(phi))[0]
-    phi_xxx = torch.autograd.grad(phi_xx, x, create_graph=True, retain_graph=True, grad_outputs=torch.ones_like(phi))[0]*(5/Lb)**5
+    phi_xxx = torch.autograd.grad(phi_xx, x, create_graph=True, retain_graph=True, grad_outputs=torch.ones_like(phi))[0]
     ode = 0
     for i in range(LFS):
         ode += phi_xxx + h(x - Ln[i], i)/EI * (x <= (Ln[i] + Lq[i])) * (x >= Ln[i])
@@ -110,8 +111,8 @@ def f(x, net):
 def g(x, net):
     net_out = net(x)
     ode = 0
-    gamma = net_out[1::3]*(Lb/5)**5
-    gamma_x = torch.autograd.grad(gamma, x, create_graph=True, retain_graph=True, grad_outputs=torch.ones_like(gamma))[0]*(5/Lb)**5
+    gamma = net_out[1::3]
+    gamma_x = torch.autograd.grad(gamma, x, create_graph=True, retain_graph=True, grad_outputs=torch.ones_like(gamma))[0]
     for i in range(LFS):
         ode += gamma_x - h(x - Ln[i], i)/(K*A*G) * (x <= (Ln[i] + Lq[i])) * (x >= Ln[i])
     return ode
@@ -122,8 +123,8 @@ def t(x,net):
     ode = 0
     phi = net_out[0::3]
     gamma = net_out[1::3]
-    v = net_out[2::3]*(Lb/5)**5
-    v_x = torch.autograd.grad(v, x, create_graph=True, retain_graph=True, grad_outputs=torch.ones_like(v))[0]*(5/Lb)**5
+    v = net_out[2::3]
+    v_x = torch.autograd.grad(v, x, create_graph=True, retain_graph=True, grad_outputs=torch.ones_like(v))[0]
     ode += phi+gamma-v_x
     return ode
 
@@ -150,10 +151,9 @@ if train:
     #ax2.set_
     net_out_plot = y1.cpu().detach().numpy()
     line1, = ax1.plot(x, net_out_plot[2::3])
-    #x_anal = torch.linspace(0, Lb, 1000)
-    f_anal=(-1/120  *(pt_x*5/Lb)**5 + 1/6 * 12.5 * (pt_x*5/Lb)**3 - 41.67/2 * (pt_x*5/Lb)**2)/EI + (1/6 * (pt_x*5/Lb)**3 - 12.5*(pt_x*5/Lb))/(K*A*G)
+    f_anal=(-1/120 * normfactor *pt_x**5 + 1/6 * Q0[-1] * pt_x**3 - M0[-1]/2 *pt_x**2)/EI + (1/6 * normfactor * (pt_x)**3 - Q0[-1]*pt_x)/(K*A*G)
 ##
-iterations = 3000
+iterations = 1000000
 for epoch in range(iterations):
     if not train: break
     optimizer.zero_grad()  # to make the gradients zero
@@ -202,16 +202,16 @@ for epoch in range(iterations):
 
     #Alle e's werden gegen 0-Vektor (pt_zero) optimiert.
     #BC Error
-    mse_bc_phi = (Lb/5)**5 *mse_cost_function(phi_bc1, pt_zero) + mse_cost_function(phi_bc2, pt_zero) + (Lb/5)**5 *mse_cost_function(phi_bc3, pt_zero) + mse_cost_function(phi_bc4, pt_zero) + mse_cost_function(phi_bc5, pt_zero)
-    mse_bc_gamma = (Lb/5)**5 *mse_cost_function(gamma_bc1, pt_zero) + mse_cost_function(gamma_bc2, pt_zero)
+    mse_bc_phi = 1/normfactor *mse_cost_function(phi_bc1, pt_zero) + mse_cost_function(phi_bc2, pt_zero) + (Lb/5)**5 *mse_cost_function(phi_bc3, pt_zero) + mse_cost_function(phi_bc4, pt_zero) + mse_cost_function(phi_bc5, pt_zero)
+    mse_bc_gamma = 1/normfactor *mse_cost_function(gamma_bc1, pt_zero) + mse_cost_function(gamma_bc2, pt_zero)
     mse_bc_v = mse_cost_function(v_bc1, pt_zero)
     #ODE Error
-    mse_ode_phi = (Lb/5)**5 *mse_cost_function(ode_phi, pt_all_zeros)
-    mse_ode_gamma = (Lb/5)**5 *mse_cost_function(ode_gamma, pt_all_zeros)
+    mse_ode_phi = 1/normfactor *mse_cost_function(ode_phi, pt_all_zeros)
+    mse_ode_gamma = 1/normfactor *mse_cost_function(ode_gamma, pt_all_zeros)
     mse_ode_v = mse_cost_function(ode_v, pt_all_zeros)
 
     loss = mse_bc_phi + mse_ode_phi+mse_bc_gamma + mse_ode_gamma+mse_bc_v + mse_ode_v
-    loss = (Lb/5)**5 * loss
+    loss = 1/normfactor * loss
 
     loss.backward()
     optimizer.step()
@@ -225,7 +225,7 @@ for epoch in range(iterations):
             net_out_v_cpu = net_out_v.cpu().detach().numpy()
             err = torch.norm(net_out_v-f_anal,2)
             print(f'Error = {err}')
-            if err < 0.075*Lb:
+            if err < 0.1*Lb:
                 print(f"Die L^2 Norm des Fehlers ist {err}.\nStoppe Lernprozess")
                 break
             line1.set_ydata(net_out_v_cpu)
@@ -271,7 +271,7 @@ plt.title('$v_{ges}$ Auslenkung')
 plt.xlabel('')
 plt.ylabel('[cm]')
 plt.plot(x, v_out)
-plt.plot(x, (-1/120 * (5/Lb)**5 * x**5 + 1/6 * Q0[-1] * x**3 - M0[-1]/2 * x**2)/EI + (1/6 * x**3 - Q0[-1]*x)/(K*A*G))
+plt.plot(x, ((-1/120 * normfactor * x**5 + Q0[-1]/6 * x**3 - M0[-1]/2 * x**2)/EI + (1/6 * normfactor* x**3 - Q0[-1] * x)/(K*A*G)))
 plt.grid()
 
 plt.subplot(2, 2, 3)
@@ -279,7 +279,7 @@ plt.title('$\phi$ Neigung')
 plt.xlabel('')
 plt.ylabel('$10^{-2}$')
 plt.plot(x, (phi_out))
-plt.plot(x, (-1/24 *(5/Lb)**5 *x**4 + 0.5 * Q0[-1] * x**2 - M0[-1] * x)/EI)
+plt.plot(x, (-1/24 * normfactor * x**4 + 0.5 * Q0[-1] * x**2 - M0[-1] * x)/EI)
 plt.grid()
 
 plt.subplot(2, 2, 4)
@@ -287,7 +287,7 @@ plt.title('$\kappa$ Krümmung')
 plt.xlabel('Meter')
 plt.ylabel('$(10^{-4})$[1/cm]')
 plt.plot(x, (phi_out_x))
-plt.plot(x, ( - 1/6 *(5/Lb)**5* x**3 + Q0[-1]*x - M0[-1])/EI)
+plt.plot(x, ( - 1/6 * normfactor * x**3 + Q0[-1]*x - M0[-1])/EI)
 plt.grid()
 
 plt.subplot(2, 2, 2)
@@ -296,10 +296,10 @@ plt.xlabel('')
 plt.ylabel('$(10^{-2})$')
 #gamma = gamma
 plt.plot(x, (v_out_x-phi_out))
-plt.plot(x, (((5/Lb)**5 * 0.5 * x**2 - Q0[-1])/(K*A*G)))
+plt.plot(x, ((normfactor * 0.5 * x**2 - Q0[-1])/(K*A*G)))
 plt.grid()
 
-gamma_anal = (((5/Lb)**5 * 0.5 * x**2 - Q0[-1])/(K*A*G))
+gamma_anal = ((normfactor * 0.5 * x**2 - Q0[-1])/(K*A*G))
 gamma_net = v_out_x-phi_out
 gamma_err = np.linalg.norm((gamma_net-gamma_anal), 2)/np.linalg.norm(gamma_anal, 2)
 print('\u03B3 5.1 =',gamma_err)
@@ -340,7 +340,7 @@ plt.title('$v_{ges}$ Auslenkung')
 plt.xlabel('')
 plt.ylabel('[cm]')
 plt.plot(x, v_out)
-plt.plot(x, (-1/120 * (5/Lb)**5 * x**5 + 1/6 * Q0[-1] * x**3 - M0[-1]/2 * x**2)/EI + (1/6 * x**3 - Q0[-1]*x)/(K*A*G))
+plt.plot(x, ((-1/120 * normfactor * x**5 + Q0[-1]/6 * x**3 - M0[-1]/2 * x**2)/EI + (1/6 * normfactor* x**3 - Q0[-1] * x)/(K*A*G)))
 plt.grid()
 
 plt.subplot(2, 2, 3)
@@ -348,7 +348,7 @@ plt.title('$\phi$ Neigung')
 plt.xlabel('')
 plt.ylabel('$10^{-2}$')
 plt.plot(x, (v_out_x + gamma_out_x))
-plt.plot(x, (-1/24 *(5/Lb)**5 *x**4 + 0.5 * Q0[-1] * x**2 - M0[-1] * x)/EI)
+plt.plot(x, (-1/24 * normfactor * x**4 + 0.5 * Q0[-1] * x**2 - M0[-1] * x)/EI)
 plt.grid()
 
 plt.subplot(2, 2, 4)
@@ -356,7 +356,7 @@ plt.title('$\kappa$ Krümmung')
 plt.xlabel('Meter')
 plt.ylabel('$(10^{-4})$[1/cm]')
 plt.plot(x, (v_out_xx - gamma_out_x))
-plt.plot(x, ( - 1/6 *(5/Lb)**5* x**3 + Q0[-1]*x - M0[-1])/EI)
+plt.plot(x, ( - 1/6 * normfactor * x**3 + Q0[-1]*x - M0[-1])/EI)
 plt.grid()
 
 plt.subplot(2, 2, 2)
@@ -364,10 +364,10 @@ plt.title('Schubwinkel $\gamma$')
 plt.xlabel('')
 plt.ylabel('$(10^{-2})$')
 plt.plot(x, (gamma_out))
-plt.plot(x, (((5/Lb)**5 * 0.5 * x**2 - Q0[-1])/(K*A*G)))
+plt.plot(x, ((normfactor * 0.5 * x**2 - Q0[-1])/(K*A*G)))
 plt.grid()
 
-gamma_anal = (((5/Lb)**5 * 0.5 * x**2 - Q0[-1])/(K*A*G))
+gamma_anal = ((normfactor * 0.5 * x**2 - Q0[-1])/(K*A*G))
 gamma_net = gamma_out
 gamma_err = np.linalg.norm((gamma_net-gamma_anal), 2)/np.linalg.norm(gamma_anal, 2)
 print('\u03B3 5.2 =',gamma_err)
