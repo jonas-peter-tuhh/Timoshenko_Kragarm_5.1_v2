@@ -18,32 +18,13 @@ train = True
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.hidden_layer1 = nn.Linear(1, 5)
-        nn.BatchNorm1d(5)
-        self.hidden_layer2 = nn.Linear(5, 15)
-        nn.BatchNorm1d(15)
-        self.hidden_layer3 = nn.Linear(15, 50)
-        nn.BatchNorm1d(50)
-        self.hidden_layer4 = nn.Linear(50, 50)
-        nn.BatchNorm1d(50)
-        self.hidden_layer5 = nn.Linear(50, 50)
-        nn.BatchNorm1d(50)
-        self.hidden_layer6 = nn.Linear(50, 25)
-        nn.BatchNorm1d(25)
-        self.hidden_layer7 = nn.Linear(25, 15)
-        nn.BatchNorm1d(15)
-        self.output_layer = nn.Linear(15, 3)
+        self.hidden_layer1 = nn.Linear(1, 75)
+        self.output_layer = nn.Linear(75, 3)
 
     def forward(self, x):  # ,p,px):
         inputs = x
         layer1_out = torch.tanh(self.hidden_layer1(inputs))
-        layer2_out = torch.tanh(self.hidden_layer2(layer1_out))
-        layer3_out = torch.tanh(self.hidden_layer3(layer2_out))
-        layer4_out = torch.tanh(self.hidden_layer4(layer3_out))
-        layer5_out = torch.tanh(self.hidden_layer5(layer4_out))
-        layer6_out = torch.tanh(self.hidden_layer6(layer5_out))
-        layer7_out = torch.tanh(self.hidden_layer7(layer6_out))
-        output = self.output_layer(layer7_out)
+        output = self.output_layer(layer1_out)
         return torch.unsqueeze(output.reshape(-1),1)
 ##
 choice_load = input("Möchtest du ein State_Dict laden? y/n")
@@ -153,7 +134,7 @@ if train:
     line1, = ax1.plot(x, net_out_plot[2::3])
     f_anal=(-1/120 * normfactor *pt_x**5 + 1/6 * Q0[-1] * pt_x**3 - M0[-1]/2 *pt_x**2)/EI + (1/6 * normfactor * (pt_x)**3 - Q0[-1]*pt_x)/(K*A*G)
 ##
-iterations = 1000000
+iterations = 100
 for epoch in range(iterations):
     if not train: break
     optimizer.zero_grad()  # to make the gradients zero
@@ -212,7 +193,6 @@ for epoch in range(iterations):
 
     loss = mse_bc_phi + mse_ode_phi+mse_bc_gamma + mse_ode_gamma+mse_bc_v + mse_ode_v
     loss = 1/normfactor * loss
-
     loss.backward()
     optimizer.step()
     scheduler.step(loss)
@@ -303,6 +283,10 @@ gamma_anal = ((normfactor * 0.5 * x**2 - Q0[-1])/(K*A*G))
 gamma_net = v_out_x-phi_out
 gamma_err = np.linalg.norm((gamma_net-gamma_anal), 2)/np.linalg.norm(gamma_anal, 2)
 print('\u03B3 5.1 =',gamma_err)
+phi_anal = (-1/24 * normfactor * x**4 + 0.5 * Q0[-1] * x**2 - M0[-1] * x)/EI
+phi_net = phi_out
+phi_err = np.linalg.norm((phi_net-phi_anal), 2)/np.linalg.norm(phi_anal, 2)
+print('phi_r 5.1=', phi_err)
 
 plt.show()
 
@@ -347,7 +331,7 @@ plt.subplot(2, 2, 3)
 plt.title('$\phi$ Neigung')
 plt.xlabel('')
 plt.ylabel('$10^{-2}$')
-plt.plot(x, (v_out_x + gamma_out_x))
+plt.plot(x, (v_out_x - gamma_out))
 plt.plot(x, (-1/24 * normfactor * x**4 + 0.5 * Q0[-1] * x**2 - M0[-1] * x)/EI)
 plt.grid()
 
@@ -371,5 +355,18 @@ gamma_anal = ((normfactor * 0.5 * x**2 - Q0[-1])/(K*A*G))
 gamma_net = gamma_out
 gamma_err = np.linalg.norm((gamma_net-gamma_anal), 2)/np.linalg.norm(gamma_anal, 2)
 print('\u03B3 5.2 =',gamma_err)
+phi_anal = (-1/24 * normfactor * x**4 + 0.5 * Q0[-1] * x**2 - M0[-1] * x)/EI
+phi_net = (v_out_x - gamma_out)
+phi_err = np.linalg.norm((phi_net-phi_anal), 2)/np.linalg.norm(phi_anal, 2)
+print('phi_r5.2=', phi_err)
 
 plt.show()
+##
+plt.plot()
+plt.title('Schubwinkel $\gamma$')
+plt.xlabel('')
+plt.ylabel('$(10^{-2})$')
+plt.plot(x, (gamma_out))
+plt.plot(x, ((normfactor * 0.5 * x**2 - Q0[-1])/(K*A*G)))
+plt.legend(['$\gamma_{anal}$','$\gamma_{out}$'])
+plt.grid()
